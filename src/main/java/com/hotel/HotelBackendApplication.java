@@ -1,23 +1,18 @@
-
 package com.hotel;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
-@SpringBootTest
-@TestPropertySource(properties = {
-    "spring.datasource.url=jdbc:h2:mem:testdb",
-    "spring.datasource.driver-class-name=org.h2.Driver",
-    "spring.datasource.username=sa",
-    "spring.datasource.password=",
-    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
-    "spring.jpa.hibernate.ddl-auto=create-drop"
-})
-class HotelApplicationTests {
+/**
+ * Hotel Management Backend — Clean Architecture
+ * Layers: domain → application → infrastructure → presentation
+ */
+@SpringBootApplication
+@EnableConfigurationProperties
+public class HotelBackendApplication {
 
-    @Test
-    void contextLoads() {
-        // Vérifie que le contexte Spring démarre correctement
+    public static void main(String[] args) {
+        SpringApplication.run(HotelBackendApplication.class, args);
     }
 }
