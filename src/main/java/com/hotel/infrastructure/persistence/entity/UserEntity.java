@@ -2,7 +2,6 @@ package com.hotel.infrastructure.persistence.entity;
 
 import com.hotel.domain.model.Role;
 import jakarta.persistence.*;
-import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -11,7 +10,6 @@ import java.time.LocalDateTime;
 
 /**
  * INFRASTRUCTURE LAYER — JPA Entity for User.
- * Separated from the domain model. Mapped by UserEntityMapper.
  */
 @Entity
 @Table(
@@ -19,11 +17,6 @@ import java.time.LocalDateTime;
     uniqueConstraints = @UniqueConstraint(name = "uk_users_email", columnNames = "email")
 )
 @EntityListeners(AuditingEntityListener.class)
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class UserEntity {
 
     @Id
@@ -44,7 +37,6 @@ public class UserEntity {
     private Role role;
 
     @Column(nullable = false)
-    @Builder.Default
     private boolean active = true;
 
     @CreatedDate
@@ -53,4 +45,71 @@ public class UserEntity {
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
+
+    // ────────────────── Constructors ──────────────────
+
+    public UserEntity() {}
+
+    private UserEntity(Builder builder) {
+        this.id        = builder.id;
+        this.name      = builder.name;
+        this.email     = builder.email;
+        this.password  = builder.password;
+        this.role      = builder.role;
+        this.active    = builder.active;
+        this.createdAt = builder.createdAt;
+        this.updatedAt = builder.updatedAt;
+    }
+
+    // ────────────────── Builder ──────────────────
+
+    public static Builder builder() { return new Builder(); }
+
+    public static final class Builder {
+        private Long id;
+        private String name;
+        private String email;
+        private String password;
+        private Role role;
+        private boolean active = true;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
+
+        public Builder id(Long id)                       { this.id = id; return this; }
+        public Builder name(String name)                  { this.name = name; return this; }
+        public Builder email(String email)                { this.email = email; return this; }
+        public Builder password(String password)          { this.password = password; return this; }
+        public Builder role(Role role)                    { this.role = role; return this; }
+        public Builder active(boolean active)             { this.active = active; return this; }
+        public Builder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
+        public Builder updatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; return this; }
+
+        public UserEntity build() { return new UserEntity(this); }
+    }
+
+    // ────────────────── Getters / Setters ──────────────────
+
+    public Long getId()                { return id; }
+    public void setId(Long id)         { this.id = id; }
+
+    public String getName()            { return name; }
+    public void setName(String name)   { this.name = name; }
+
+    public String getEmail()           { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPassword()               { return password; }
+    public void setPassword(String password)  { this.password = password; }
+
+    public Role getRole()              { return role; }
+    public void setRole(Role role)     { this.role = role; }
+
+    public boolean isActive()          { return active; }
+    public void setActive(boolean active) { this.active = active; }
+
+    public LocalDateTime getCreatedAt()               { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt()               { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

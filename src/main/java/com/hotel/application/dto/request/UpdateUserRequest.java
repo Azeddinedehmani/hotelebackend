@@ -18,5 +18,7 @@ public record UpdateUserRequest(
         @Email(message = "Format d'email invalide")
         String email,
 
-        Role role
+        Role role,
+
+        String phone
 ) {}

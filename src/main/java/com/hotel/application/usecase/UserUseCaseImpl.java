@@ -9,8 +9,8 @@ import com.hotel.domain.model.Role;
 import com.hotel.domain.model.User;
 import com.hotel.domain.repository.UserRepository;
 import com.hotel.domain.service.UserDomainService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,13 +21,18 @@ import java.util.stream.Collectors;
  * APPLICATION LAYER — UserUseCase Implementation.
  */
 @Service
-@RequiredArgsConstructor
-@Slf4j
 @Transactional
 public class UserUseCaseImpl implements UserUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(UserUseCaseImpl.class);
+
     private final UserRepository userRepository;
     private final UserDomainService userDomainService;
+
+    public UserUseCaseImpl(UserRepository userRepository, UserDomainService userDomainService) {
+        this.userRepository    = userRepository;
+        this.userDomainService = userDomainService;
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -50,15 +55,13 @@ public class UserUseCaseImpl implements UserUseCase {
     @Override
     @Transactional(readOnly = true)
     public UserResponse getUserById(Long id) {
-        User user = findUserOrThrow(id);
-        return UserResponse.from(user);
+        return UserResponse.from(findUserOrThrow(id));
     }
 
     @Override
     public UserResponse updateUser(Long id, UpdateUserRequest request) {
         User user = findUserOrThrow(id);
 
-        // Check email uniqueness only if email changed
         if (!user.getEmail().equalsIgnoreCase(request.email())) {
             userDomainService.ensureEmailIsUnique(request.email());
         }
@@ -106,12 +109,10 @@ public class UserUseCaseImpl implements UserUseCase {
 
     @Override
     public void deleteUser(Long id) {
-        findUserOrThrow(id); // ensures user exists
+        findUserOrThrow(id);
         userRepository.deleteById(id);
         log.info("User {} deleted", id);
     }
-
-    // ───────── Helpers ─────────
 
     private User findUserOrThrow(Long id) {
         return userRepository.findById(id)

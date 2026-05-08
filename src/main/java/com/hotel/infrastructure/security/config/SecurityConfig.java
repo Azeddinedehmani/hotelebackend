@@ -18,10 +18,17 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 /**
  * INFRASTRUCTURE LAYER — Spring Security configuration.
  * Stateless JWT-based authentication with role-based access control.
+ *
+ * FIX CORS : http.cors(c -> c.configurationSource(corsConfigurationSource))
+ *   Sans cette ligne, Spring Security intercepte les requêtes préflight OPTIONS
+ *   AVANT que le CorsFilter ne les traite → réponse 403 → frontend bloqué.
+ *   Avec cette ligne, Spring Security délègue la configuration CORS au bean
+ *   CorsConfigurationSource déclaré dans CorsConfig → préflight autorisé.
  */
 @Configuration
 @EnableWebSecurity
@@ -31,6 +38,9 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final CustomUserDetailsService userDetailsService;
+
+    // FIX : injection du CorsConfigurationSource déclaré dans CorsConfig
+    private final CorsConfigurationSource corsConfigurationSource;
 
     // ────────────────── Public endpoints ──────────────────
     private static final String[] PUBLIC_ENDPOINTS = {
@@ -46,11 +56,53 @@ public class SecurityConfig {
             // Disable CSRF (stateless JWT)
             .csrf(AbstractHttpConfigurer::disable)
 
-            // Authorization rules
+            // FIX PRINCIPAL : connecter le CorsConfigurationSource à Spring Security
+            // Sans cette ligne, les requêtes OPTIONS reçoivent un 403 avant d'atteindre le CorsFilter
+            .cors(cors -> cors.configurationSource(corsConfigurationSource))
+
             .authorizeHttpRequests(auth -> auth
+
+                    // OPTIONS preflight — toujours permis, sans token
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                    // Endpoints publics (login, register, swagger)
                     .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+
+                    // ── Users ──
                     .requestMatchers(HttpMethod.GET, "/users/**").hasAnyRole("ADMIN", "RECEPTIONNISTE")
                     .requestMatchers("/users/**").hasRole("ADMIN")
+
+                    // ── Clients ──
+                    .requestMatchers(HttpMethod.GET,    "/clients/**").hasAnyRole("ADMIN", "RECEPTIONNISTE")
+                    .requestMatchers(HttpMethod.POST,   "/clients/**").hasAnyRole("ADMIN", "RECEPTIONNISTE")
+                    .requestMatchers(HttpMethod.PUT,    "/clients/**").hasAnyRole("ADMIN", "RECEPTIONNISTE")
+                    .requestMatchers(HttpMethod.DELETE, "/clients/**").hasRole("ADMIN")
+
+                    // ── Rooms ──
+                    .requestMatchers(HttpMethod.GET,    "/rooms/**").hasAnyRole("ADMIN", "RECEPTIONNISTE", "CLIENT")
+                    .requestMatchers(HttpMethod.POST,   "/rooms/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT,    "/rooms/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/rooms/**").hasRole("ADMIN")
+
+                    // ── Reservations ──
+                    .requestMatchers(HttpMethod.GET,    "/reservations/**").hasAnyRole("ADMIN", "RECEPTIONNISTE", "CLIENT")
+                    .requestMatchers(HttpMethod.POST,   "/reservations/**").hasAnyRole("ADMIN", "RECEPTIONNISTE", "CLIENT")
+                    .requestMatchers(HttpMethod.PUT,    "/reservations/**").hasAnyRole("ADMIN", "RECEPTIONNISTE")
+                    .requestMatchers(HttpMethod.PATCH,  "/reservations/**").hasAnyRole("ADMIN", "RECEPTIONNISTE", "CLIENT")
+                    .requestMatchers(HttpMethod.DELETE, "/reservations/**").hasRole("ADMIN")
+
+                    // ── Tariffs ──
+                    .requestMatchers(HttpMethod.GET, "/tariffs/**").hasAnyRole("ADMIN", "RECEPTIONNISTE")
+                    .requestMatchers("/tariffs/**").hasRole("ADMIN")
+
+                    // ── Equipment ──
+                    .requestMatchers(HttpMethod.GET, "/equipment/**").hasAnyRole("ADMIN", "RECEPTIONNISTE")
+                    .requestMatchers("/equipment/**").hasRole("ADMIN")
+
+                    // ── Invoices ──
+                    .requestMatchers(HttpMethod.GET, "/invoices/**").hasAnyRole("ADMIN", "RECEPTIONNISTE", "CLIENT")
+                    .requestMatchers("/invoices/**").hasAnyRole("ADMIN", "RECEPTIONNISTE")
+
                     .anyRequest().authenticated()
             )
 

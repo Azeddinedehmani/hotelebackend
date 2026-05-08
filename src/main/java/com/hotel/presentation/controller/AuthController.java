@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * PRESENTATION LAYER — Authentication REST controller.
- * Routes: POST /api/auth/register, POST /api/auth/login, GET /api/auth/me
+ * Routes: POST /auth/register, POST /auth/login, GET /auth/me
  */
 @RestController
 @RequestMapping("/auth")
@@ -26,8 +26,8 @@ public class AuthController {
     private final AuthUseCase authUseCase;
 
     /**
-     * POST /api/auth/register
-     * Register a new user.
+     * POST /auth/register
+     * Register a new user (ADMIN only — sécurisé via SecurityConfig).
      */
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<AuthResponse>> register(
@@ -40,7 +40,7 @@ public class AuthController {
     }
 
     /**
-     * POST /api/auth/login
+     * POST /auth/login
      * Authenticate and receive JWT token.
      */
     @PostMapping("/login")
@@ -52,12 +52,21 @@ public class AuthController {
     }
 
     /**
-     * GET /api/auth/me
+     * GET /auth/me
      * Get current authenticated user profile.
+     *
+     * FIX: null-check sur userDetails pour éviter NullPointerException
+     * quand la requête arrive sans token JWT valide.
      */
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(
             @AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Non authentifié — token JWT manquant ou invalide"));
+        }
 
         UserResponse user = authUseCase.getCurrentUser(userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.success(user));

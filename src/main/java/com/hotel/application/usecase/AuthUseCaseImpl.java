@@ -11,44 +11,46 @@ import com.hotel.domain.repository.UserRepository;
 import com.hotel.domain.service.UserDomainService;
 import com.hotel.infrastructure.security.config.CustomUserDetails;
 import com.hotel.infrastructure.security.jwt.JwtService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * APPLICATION LAYER — AuthUseCase Implementation.
- * Orchestrates domain model, domain service, and JWT infrastructure.
  */
 @Service
-@RequiredArgsConstructor
-@Slf4j
 @Transactional
 public class AuthUseCaseImpl implements AuthUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthUseCaseImpl.class);
 
     private final UserRepository userRepository;
     private final UserDomainService userDomainService;
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
+    public AuthUseCaseImpl(UserRepository userRepository,
+                           UserDomainService userDomainService,
+                           JwtService jwtService,
+                           UserDetailsService userDetailsService) {
+        this.userRepository    = userRepository;
+        this.userDomainService = userDomainService;
+        this.jwtService        = jwtService;
+        this.userDetailsService = userDetailsService;
+    }
+
     @Override
     public AuthResponse register(RegisterRequest request) {
         log.info("Registration attempt for email: {}", request.email());
 
-        // 1. Domain invariant: email uniqueness
         userDomainService.ensureEmailIsUnique(request.email());
 
-        // 2. Encode password
         String encodedPassword = userDomainService.encodePassword(request.password());
-
-        // 3. Create domain user (domain validates invariants)
         User user = User.create(request.name(), request.email(), encodedPassword, request.role());
-
-        // 4. Persist via repository port
         User savedUser = userRepository.save(user);
 
-        // 5. Generate JWT
         var userDetails = new CustomUserDetails(savedUser);
         String token    = jwtService.generateToken(userDetails);
 
@@ -60,19 +62,15 @@ public class AuthUseCaseImpl implements AuthUseCase {
     public AuthResponse login(LoginRequest request) {
         log.info("Login attempt for email: {}", request.email());
 
-        // 1. Find user
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(UnauthorizedException::invalidCredentials);
 
-        // 2. Check account is active
         userDomainService.ensureUserIsActive(user);
 
-        // 3. Verify password
         if (!userDomainService.passwordMatches(request.password(), user.getPassword())) {
             throw UnauthorizedException.invalidCredentials();
         }
 
-        // 4. Generate JWT
         var userDetails = new CustomUserDetails(user);
         String token    = jwtService.generateToken(userDetails);
 

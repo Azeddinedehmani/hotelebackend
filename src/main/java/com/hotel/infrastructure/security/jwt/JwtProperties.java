@@ -1,26 +1,26 @@
 package com.hotel.infrastructure.security.jwt;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
  * INFRASTRUCTURE LAYER — JWT configuration properties.
- * Bound from application.yml → jwt.*
+ * Bound from application.properties → jwt.*
  */
 @Component
 @ConfigurationProperties(prefix = "jwt")
-@Getter
-@Setter
 public class JwtProperties {
 
-    /** Secret key for signing JWT tokens (must be 256-bit minimum). */
     private String secret;
-
-    /** Access token expiration in milliseconds (default: 24h). */
     private long expiration = 86400000L;
-
-    /** Refresh token expiration in milliseconds (default: 7 days). */
     private long refreshExpiration = 604800000L;
+
+    public String getSecret()                        { return secret; }
+    public void setSecret(String secret)             { this.secret = secret; }
+
+    public long getExpiration()                      { return expiration; }
+    public void setExpiration(long expiration)       { this.expiration = expiration; }
+
+    public long getRefreshExpiration()               { return refreshExpiration; }
+    public void setRefreshExpiration(long v)         { this.refreshExpiration = v; }
 }
